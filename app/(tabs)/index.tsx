@@ -1,98 +1,219 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { DiscoveryCard } from '@/components/discovery-card';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { api } from '@/services/api';
+import { Professional } from '@/data/mock-data';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DiscoveryScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
+  
+  const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
 
-export default function HomeScreen() {
+  useEffect(() => {
+    loadProfessionals();
+  }, []);
+
+  const loadProfessionals = async () => {
+    setLoading(true);
+    const data = await api.getProfessionals();
+    setProfessionals(data);
+    setLoading(false);
+  };
+
+  const currentProfessional = professionals[currentIndex];
+
+  const handleLike = async () => {
+    if (!currentProfessional) return;
+    await api.likeProfessional(currentProfessional.id);
+    nextCard();
+  };
+
+  const handlePass = async () => {
+    if (!currentProfessional) return;
+    await api.passProfessional(currentProfessional.id);
+    nextCard();
+  };
+
+  const nextCard = () => {
+    setCurrentIndex((prev) => prev + 1);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#06b6d4" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentProfessional) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.emptyState}>
+          <Ionicons name="sparkles-outline" size={64} color={colors.icon} style={{ marginBottom: 16 }} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>Tudo limpo por aqui!</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.icon }]}>Você já viu todos os profissionais disponíveis no momento.</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={loadProfessionals}>
+            <Text style={styles.refreshButtonText}>Recarregar Feed</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.logo, { color: colors.text }]}>
+          Pro<Text style={styles.logoHighlight}>Match</Text>
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.icon }]}>Encontre seu match profissional ideal</Text>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.cardStack}>
+        {/* Background cards for depth */}
+        {professionals.slice(currentIndex + 1, currentIndex + 3).map((pro, index) => (
+          <View
+            key={pro.id}
+            style={[
+              styles.backgroundCard,
+              { 
+                backgroundColor: colors.background, 
+                borderColor: colors.border,
+                zIndex: -index - 1,
+                transform: [
+                  { scale: 1 - (index + 1) * 0.05 },
+                  { translateY: (index + 1) * -15 }
+                ],
+                opacity: 0.5 - index * 0.2
+              }
+            ]}
+          />
+        ))}
+
+        <DiscoveryCard
+          key={currentProfessional.id}
+          professional={currentProfessional}
+          onLike={handleLike}
+          onPass={handlePass}
+          isFirst={true}
+        />
+      </View>
+
+      <View style={styles.actions}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.passButton, { borderColor: '#ef4444' }]}
+          onPress={handlePass}
+        >
+          <Ionicons name="close" size={32} color="#ef4444" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.likeButton]}
+          onPress={handleLike}
+        >
+          <Ionicons name="heart" size={40} color="white" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    marginBottom: 24,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  logoHighlight: {
+    color: '#06b6d4',
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  cardStack: {
+    flex: 1,
+    paddingHorizontal: 16,
+    position: 'relative',
+  },
+  backgroundCard: {
+    position: 'absolute',
+    top: 0,
+    left: 16,
+    right: 16,
+    height: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 24,
+    paddingVertical: 32,
+  },
+  actionButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  passButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+  },
+  likeButton: {
+    backgroundColor: '#06b6d4',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 22,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  refreshButton: {
+    backgroundColor: '#06b6d4',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

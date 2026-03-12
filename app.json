@@ -28,6 +28,20 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationAlwaysPermissionMsg": "Permitir que o ProMatch acesse sua localização para sugerir profissionais próximos.",
+          "locationWhenInUsePermissionMsg": "Precisamos da sua localização para preencher seu endereço e encontrar matches próximos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permitir que o ProMatch acesse suas fotos para o perfil e portfólio.",
+          "cameraPermission": "Permitir que o ProMatch use sua câmera para tirar uma nova foto de perfil."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -43,6 +57,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "68c9d53d-f746-47f5-aee7-238548d79f91"
+      }
     }
   }
 }
